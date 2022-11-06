@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:frappe_app/model/common.dart';
+import 'package:frappe_app/model/get_doc_response.dart';
+import 'package:frappe_app/utils/loading_indicator.dart';
 import 'package:injectable/injectable.dart';
 
 import '../../app/locator.dart';
@@ -17,47 +16,71 @@ import '../../utils/enums.dart';
 import '../../utils/helpers.dart';
 import '../../model/queue.dart';
 
-@lazySingleton
 class FormViewViewModel extends BaseViewModel {
-  bool editMode = false;
-  Response error;
-  Map formData;
+  late String name;
+  late DoctypeDoc meta;
+  late bool isDirty;
+
+  ErrorResponse? error;
+  late GetDocResponse formData;
   final user = Config().user;
+  Docinfo? docinfo;
+  late bool communicationOnly;
 
   void refresh() {
-    editMode = false;
     notifyListeners();
   }
 
-  void toggleEdit() {
-    editMode = !editMode;
-    notifyListeners();
-  }
-
-  Future getData({
-    @required bool queued,
-    @required String doctype,
-    @required String name,
-    @required Map queuedData,
-    @required ConnectivityStatus connectivityStatus,
+  init({
+    String? doctype,
+    DoctypeDoc? constMeta,
+    required String constName,
   }) async {
     setState(ViewState.busy);
-    if (queued) {
-      formData = {
-        "docs": queuedData["data"],
-      };
+    communicationOnly = true;
+    name = constName;
+    isDirty = false;
+    if (constMeta == null) {
+      if (doctype != null) {
+        var metaResponse = await locator<Api>().getDoctype(doctype);
+        meta = metaResponse.docs[0];
+      }
     } else {
-      var isOnline = await verifyOnline();
+      meta = constMeta;
+    }
+    getData();
+  }
+
+  handleFormDataChange() {
+    if (!isDirty) {
+      isDirty = true;
+      notifyListeners();
+    }
+  }
+
+  toggleSwitch(bool newVal) {
+    communicationOnly = newVal;
+    notifyListeners();
+  }
+
+  Future getData() async {
+    setState(ViewState.busy);
+
+    try {
+      // var isOnline = await verifyOnline();
+      var isOnline = true;
+      var doctype = meta.name;
 
       if (!isOnline) {
-        var response = await OfflineStorage.getItem(
+        var response = OfflineStorage.getItem(
           '$doctype$name',
         );
         response = response["data"];
         if (response != null) {
-          formData = response;
+          formData = GetDocResponse.fromJson(response);
+          docinfo = formData.docinfo;
         } else {
-          error = Response(
+          error = ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
           );
         }
@@ -66,69 +89,72 @@ class FormViewViewModel extends BaseViewModel {
           doctype,
           name,
         );
+        docinfo = formData.docinfo;
       }
+    } catch (e) {
+      error = e as ErrorResponse;
     }
+
     setState(ViewState.idle);
   }
 
+  getDocinfo() async {
+    docinfo = await locator<Api>().getDocinfo(meta.name, name);
+    notifyListeners();
+  }
+
   Future handleUpdate({
-    @required String name,
-    @required String doctype,
-    @required DoctypeResponse meta,
-    @required Map formValue,
-    @required ConnectivityStatus connectivityStatus,
-    @required Map doc,
-    @required Map queuedData,
+    required Map formValue,
+    required Map doc,
   }) async {
-    formValue.forEach((key, value) {
-      if (value is Uint8List) {
-        var str = base64.encode(value);
+    LoadingIndicator.loadingWithBackgroundDisabled("Saving");
+    // var isOnline = await verifyOnline();
+    var isOnline = true;
+    if (!isOnline) {
+      // if (queuedData != null) {
+      //   queuedData["data"] = [
+      //     {
+      //       ...doc,
+      //       ...formValue,
+      //     }
+      //   ];
+      //   queuedData["updated_keys"] = {
+      //     ...queuedData["updated_keys"],
+      //     ...extractChangedValues(
+      //       doc,
+      //       formValue,
+      //     )
+      //   };
+      //   queuedData["title"] = getTitle(
+      //     meta.docs[0],
+      //     formValue,
+      //   );
 
-        formValue[key] = "data:image/png;base64,$str";
-      }
-    });
-    var isOnline = await verifyOnline();
-    if ((connectivityStatus == null ||
-            connectivityStatus == ConnectivityStatus.offline) &&
-        !isOnline) {
-      if (queuedData != null) {
-        queuedData["data"] = [
-          {
-            ...doc,
-            ...formValue,
-          }
-        ];
-        queuedData["updated_keys"] = {
-          ...queuedData["updated_keys"],
-          ...extractChangedValues(
-            doc,
-            formValue,
-          )
-        };
-        queuedData["title"] = getTitle(
-          meta.docs[0],
-          formValue,
-        );
-
-        Queue.putAt(
-          queuedData["qIdx"],
-          queuedData,
-        );
-      } else {
-        Queue.add({
-          "type": "Update",
-          "name": name,
-          "doctype": doctype,
-          "title": getTitle(meta.docs[0], formValue),
-          "updated_keys": extractChangedValues(doc, formValue),
-          "data": [
-            {
-              ...doc,
-              ...formValue,
-            }
-          ],
-        });
-      }
+      //   Queue.putAt(
+      //     queuedData["qIdx"],
+      //     queuedData,
+      //   );
+      // } else {
+      //   Queue.add(
+      //     {
+      //       "type": "Update",
+      //       "name": name,
+      //       "doctype": meta.docs[0].name,
+      //       "title": getTitle(meta.docs[0], formValue),
+      //       "updated_keys": extractChangedValues(doc, formValue),
+      //       "data": [
+      //         {
+      //           ...doc,
+      //           ...formValue,
+      //         }
+      //       ],
+      //     },
+      //   );
+      // }
+      LoadingIndicator.stopLoading();
+      throw ErrorResponse(
+        statusCode: HttpStatus.serviceUnavailable,
+      );
     } else {
       formValue = {
         ...doc,
@@ -137,14 +163,27 @@ class FormViewViewModel extends BaseViewModel {
 
       try {
         var response = await locator<Api>().saveDocs(
-          doctype,
+          meta.name,
           formValue,
         );
 
         if (response.statusCode == HttpStatus.ok) {
+          docinfo = Docinfo.fromJson(
+            response.data["docinfo"],
+          );
+          formData = GetDocResponse(
+            docs: response.data["docs"],
+            docinfo: docinfo,
+          );
+
+          isDirty = false;
+
+          LoadingIndicator.stopLoading();
+
           refresh();
         }
       } catch (e) {
+        LoadingIndicator.stopLoading();
         throw e;
       }
     }

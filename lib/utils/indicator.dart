@@ -1,3 +1,5 @@
+// @dart=2.9
+
 import 'package:flutter/material.dart';
 import 'package:frappe_app/config/palette.dart';
 
@@ -34,7 +36,7 @@ class Indicator {
       "Success",
     ].contains(status)) {
       return indicateSuccess(status);
-    } else if (["Submitted"].contains(status)) {
+    } else if (["Submitted", "Enabled"].contains(status)) {
       return indicateComplete(status);
     } else {
       return indicateUndefined(status);

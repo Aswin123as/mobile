@@ -1,6 +1,11 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
+import 'package:frappe_app/model/common.dart';
+import 'package:frappe_app/model/get_doc_response.dart';
+import 'package:frappe_app/model/get_versions_response.dart';
+import 'package:frappe_app/model/group_by_count_response.dart';
+import 'package:frappe_app/model/login_request.dart';
+import 'package:frappe_app/model/system_settings_response.dart';
+import 'package:frappe_app/model/upload_file_response.dart';
 
 import '../../model/doctype_response.dart';
 import '../../model/desktop_page_response.dart';
@@ -9,8 +14,7 @@ import '../../model/login_response.dart';
 
 abstract class Api {
   Future<LoginResponse> login(
-    String usr,
-    String pwd,
+    LoginRequest loginRequest,
   );
 
   Future<DeskSidebarItemsResponse> getDeskSideBarItems();
@@ -27,12 +31,13 @@ abstract class Api {
     @required List fieldnames,
     @required String doctype,
     @required DoctypeDoc meta,
+    @required String orderBy,
     List filters,
-    pageLength,
-    offset,
+    int pageLength,
+    int offset,
   });
 
-  Future getdoc(String doctype, String name);
+  Future<GetDocResponse> getdoc(String doctype, String name);
 
   Future postComment(
     String refDocType,
@@ -73,7 +78,11 @@ abstract class Api {
 
   Future deleteComment(String name);
 
-  Future uploadFile(String doctype, String name, List<File> files);
+  Future<List<UploadedFile>> uploadFiles({
+    @required String doctype,
+    @required String name,
+    @required List<FrappeFile> files,
+  });
 
   Future saveDocs(String doctype, Map formValue);
 
@@ -94,13 +103,42 @@ abstract class Api {
 
   Future addReview(String doctype, String name, Map reviewData);
 
-  Future setPermission(
-    String doctype,
-    String name,
-    Map shareInfo,
-  );
+  Future setPermission({
+    @required String doctype,
+    @required String name,
+    @required Map shareInfo,
+    @required String user,
+  });
 
   Future shareAdd(String doctype, String name, Map shareInfo);
 
+  Future shareGetUsers({
+    @required String doctype,
+    @required String name,
+  });
+
   Future<Map> getContactList(String query);
+
+  Future<GroupByCountResponse> getGroupByCount({
+    required String doctype,
+    required List currentFilters,
+    required String field,
+  });
+
+  Future<int> getReportViewCount({
+    required String doctype,
+    required Map filters,
+    required List<DoctypeField> fields,
+  });
+
+  Future<SystemSettingsResponse> getSystemSettings();
+
+  Future<GetVersionsResponse> getVersions();
+
+  Future<List> getList({
+    required List fields,
+    required int limit,
+    required String orderBy,
+    required String doctype,
+  });
 }

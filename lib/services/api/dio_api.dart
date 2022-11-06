@@ -1,8 +1,17 @@
+// @dart=2.9
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:frappe_app/model/common.dart';
+import 'package:frappe_app/model/get_doc_response.dart';
+import 'package:frappe_app/model/get_versions_response.dart';
+import 'package:frappe_app/model/group_by_count_response.dart';
+import 'package:frappe_app/model/login_request.dart';
+import 'package:frappe_app/model/system_settings_response.dart';
+import 'package:frappe_app/model/upload_file_response.dart';
 
 import '../../model/doctype_response.dart';
 import '../../model/desktop_page_response.dart';
@@ -16,47 +25,54 @@ import '../../utils/dio_helper.dart';
 import '../../model/offline_storage.dart';
 
 class DioApi implements Api {
-  Future<LoginResponse> login(String usr, String pwd) async {
+  Future<LoginResponse> login(LoginRequest loginRequest) async {
     try {
       final response = await DioHelper.dio.post(
         '/method/login',
-        data: {
-          'usr': usr,
-          'pwd': pwd,
-        },
-        options: Options(
-          validateStatus: (status) {
-            return status < 500;
-          },
-        ),
+        data: loginRequest.toJson(),
+        options: Options(validateStatus: (status) => status < 500),
       );
-      if (response.statusCode == 200) {
-        response.data["user_id"] =
-            response.headers.map["set-cookie"][3].split(';')[0].split('=')[1];
+
+      if (response.statusCode == HttpStatus.ok) {
+        if (response.headers.map["set-cookie"] != null &&
+            response.headers.map["set-cookie"][3] != null) {
+          response.data["user_id"] =
+              response.headers.map["set-cookie"][3].split(';')[0].split('=')[1];
+        }
+
         return LoginResponse.fromJson(response.data);
       } else {
-        throw response;
+        throw ErrorResponse(
+          statusMessage: response.data["message"],
+          statusCode: response.statusCode,
+        );
       }
     } catch (e) {
-      if (e is DioError) {
-        var error = e.error;
-        if (error is SocketException) {
-          throw Response(
-            statusCode: HttpStatus.serviceUnavailable,
-            statusMessage: error.message,
-          );
-        } else {
-          throw Response(statusMessage: error.message, statusCode: error);
-        }
-      } else {
-        throw e;
+      if (!(e is DioError)) rethrow;
+
+      final error = e.error;
+      if (error is SocketException) {
+        throw ErrorResponse(
+          statusCode: HttpStatus.serviceUnavailable,
+          statusMessage: error.message,
+        );
       }
+
+      if (error is HandshakeException) {
+        throw ErrorResponse(
+          statusCode: HttpStatus.serviceUnavailable,
+          statusMessage: "Cannot connect securely to server."
+              " Please ensure that the server has a valid SSL configuration.",
+        );
+      }
+
+      throw ErrorResponse(statusMessage: error.message);
     }
   }
 
   Future<DeskSidebarItemsResponse> getDeskSideBarItems() async {
     try {
-      final response = await DioHelper.dio.post(
+      var response = await DioHelper.dio.post(
         '/method/frappe.desk.desktop.get_desk_sidebar_items',
         options: Options(
           validateStatus: (status) {
@@ -64,6 +80,18 @@ class DioApi implements Api {
           },
         ),
       );
+
+      if (response.statusCode == 417) {
+        response = await DioHelper.dio.post(
+          '/method/frappe.desk.desktop.get_wspace_sidebar_items',
+          options: Options(
+            validateStatus: (status) {
+              return status < 500;
+            },
+          ),
+        );
+        response.data["message"] = response.data["message"]["pages"];
+      }
 
       if (response.statusCode == HttpStatus.ok) {
         if (await OfflineStorage.storeApiResponse()) {
@@ -75,26 +103,30 @@ class DioApi implements Api {
         } catch (e) {
           response.data["message"] = [
             ...response.data["message"]["Modules"],
-            ...response.data["message"]["Administration"],
             ...response.data["message"]["Domains"],
+            ...response.data["message"]["Administration"],
           ];
           return DeskSidebarItemsResponse.fromJson(response.data);
         }
       } else if (response.statusCode == HttpStatus.forbidden) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+        // response;
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
         throw e;
@@ -123,20 +155,23 @@ class DioApi implements Api {
 
         return DesktopPageResponse.fromJson(response.data);
       } else if (response.statusCode == 403) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
         throw e;
@@ -172,23 +207,29 @@ class DioApi implements Api {
         }
         return DoctypeResponse.fromJson(response.data);
       } else if (response.statusCode == HttpStatus.forbidden) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse(
+          statusMessage: response.statusMessage,
+          statusCode: response.statusCode,
+        );
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
-        throw e;
+        throw ErrorResponse();
       }
     }
   }
@@ -197,15 +238,17 @@ class DioApi implements Api {
     @required List fieldnames,
     @required String doctype,
     @required DoctypeDoc meta,
+    @required String orderBy,
     List filters,
-    pageLength,
-    offset,
+    int pageLength,
+    int offset,
   }) async {
     var queryParams = {
       'doctype': doctype,
       'fields': jsonEncode(fieldnames),
-      'page_length': pageLength,
-      'with_comment_count': true
+      'page_length': pageLength.toString(),
+      'with_comment_count': true,
+      'order_by': orderBy
     };
 
     queryParams['limit_start'] = offset.toString();
@@ -263,28 +306,31 @@ class DioApi implements Api {
 
         return newL;
       } else if (response.statusCode == HttpStatus.forbidden) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
-        throw e;
+        throw ErrorResponse();
       }
     }
   }
 
-  Future getdoc(String doctype, String name) async {
+  Future<GetDocResponse> getdoc(String doctype, String name) async {
     var queryParams = {
       'doctype': doctype,
       'name': name,
@@ -305,22 +351,25 @@ class DioApi implements Api {
         if (await OfflineStorage.storeApiResponse()) {
           await OfflineStorage.putItem('$doctype$name', response.data);
         }
-        return response.data;
+        return GetDocResponse.fromJson(response.data);
       } else if (response.statusCode == 403) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
         throw e;
@@ -348,35 +397,42 @@ class DioApi implements Api {
     }
   }
 
-  Future sendEmail(
-      {@required recipients,
-      cc,
-      bcc,
-      @required subject,
-      @required content,
-      @required doctype,
-      @required doctypeName,
-      sendEmail,
-      printHtml,
-      sendMeACopy,
-      printFormat,
-      emailTemplate,
-      attachments,
-      readReceipt,
-      printLetterhead}) async {
+  Future sendEmail({
+    @required recipients,
+    cc,
+    bcc,
+    @required subject,
+    @required content,
+    @required doctype,
+    @required doctypeName,
+    sendEmail,
+    printHtml,
+    sendMeACopy,
+    printFormat,
+    emailTemplate,
+    attachments,
+    readReceipt,
+    printLetterhead,
+  }) async {
     var queryParams = {
       'recipients': recipients,
       'subject': subject,
       'content': content,
       'doctype': doctype,
       'name': doctypeName,
-      'send_email': 1
+      'send_email': 1,
+      'attachments': json.encode(attachments),
+      'read_receipt': readReceipt,
+      'send_me_a_copy': sendMeACopy,
     };
 
     final response = await DioHelper.dio.post(
-        '/method/frappe.core.doctype.communication.email.make',
-        data: queryParams,
-        options: Options(contentType: Headers.formUrlEncodedContentType));
+      '/method/frappe.core.doctype.communication.email.make',
+      data: queryParams,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
     if (response.statusCode == 200) {
     } else {
       throw Exception('Something went wrong');
@@ -393,18 +449,43 @@ class DioApi implements Api {
       're_assign': false
     };
 
-    var response = await DioHelper.dio.post(
-      '/method/frappe.desk.form.assign_to.add',
-      data: data,
-      options: Options(
-        contentType: Headers.formUrlEncodedContentType,
-      ),
-    );
+    try {
+      var response = await DioHelper.dio.post(
+        '/method/frappe.desk.form.assign_to.add',
+        data: data,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      return;
-    } else {
-      throw Exception('Something went wrong');
+      if (response.statusCode == 200) {
+        return;
+      } else {
+        throw Exception('Something went wrong');
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error;
+        if (e.response != null) {
+          error = e.response;
+        } else {
+          error = e.error;
+        }
+
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(
+            statusCode: error.statusCode,
+            statusMessage: error.statusMessage,
+          );
+        }
+      } else {
+        throw e;
+      }
     }
   }
 
@@ -445,7 +526,7 @@ class DioApi implements Api {
     );
 
     if (response.statusCode == 200) {
-      return response.data;
+      return Docinfo.fromJson(response.data["docinfo"]);
     } else {
       throw Exception('Something went wrong');
     }
@@ -495,26 +576,40 @@ class DioApi implements Api {
     }
   }
 
-  Future uploadFile(String doctype, String name, List<File> files) async {
-    for (File file in files) {
-      String fileName = file.path.split('/').last;
+  Future<List<UploadedFile>> uploadFiles({
+    @required String doctype,
+    @required String name,
+    @required List<FrappeFile> files,
+  }) async {
+    List<UploadedFile> uploadedFiles = [];
+
+    for (FrappeFile frappeFile in files) {
+      String fileName = frappeFile.file.path.split('/').last;
       FormData formData = FormData.fromMap({
         "file": await MultipartFile.fromFile(
-          file.path,
+          frappeFile.file.path,
           filename: fileName,
         ),
         "docname": name,
         "doctype": doctype,
-        "is_private": 1,
+        "is_private": frappeFile.isPrivate ? 1 : 0,
         "folder": "Home/Attachments"
       });
 
-      var response =
-          await DioHelper.dio.post("/method/upload_file", data: formData);
-      if (response.statusCode != 200) {
+      var response = await DioHelper.dio.post(
+        "/method/upload_file",
+        data: formData,
+      );
+      if (response.statusCode == 200) {
+        var uploadedFilesResponse =
+            UploadedFileResponse.fromJson(response.data);
+        uploadedFiles.add(uploadedFilesResponse.uploadedFile);
+      } else {
         throw Exception('Something went wrong');
       }
     }
+
+    return uploadedFiles;
   }
 
   Future saveDocs(String doctype, Map formValue) async {
@@ -534,30 +629,34 @@ class DioApi implements Api {
       if (response.statusCode == 200) {
         return response;
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
-        var error;
-        if (e.response != null) {
-          error = e.response;
-        } else {
-          error = e.error;
-        }
+        if (e.response != null &&
+            e.response.data != null &&
+            e.response.data["_server_messages"] != null) {
+          var errorMsg = getServerMessage(e.response.data["_server_messages"]);
 
-        if (error is SocketException) {
-          throw Response(
-            statusCode: HttpStatus.serviceUnavailable,
-            statusMessage: error.message,
+          throw ErrorResponse(
+            statusCode: e.response.statusCode,
+            statusMessage: errorMsg,
           );
         } else {
-          throw Response(
-            statusCode: error.statusCode,
-            statusMessage: error.statusMessage,
-          );
+          if (e.error is SocketException) {
+            throw ErrorResponse(
+              statusCode: HttpStatus.serviceUnavailable,
+              statusMessage: e.error.message,
+            );
+          } else {
+            throw ErrorResponse(
+              statusCode: e.error.statusCode,
+              statusMessage: e.error.statusMessage,
+            );
+          }
         }
       } else {
-        throw e;
+        throw ErrorResponse();
       }
     }
   }
@@ -600,20 +699,23 @@ class DioApi implements Api {
         }
         return response.data;
       } else if (response.statusCode == HttpStatus.forbidden) {
-        throw response;
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
       } else {
-        throw Response(statusMessage: 'Something went wrong');
+        throw ErrorResponse();
       }
     } catch (e) {
       if (e is DioError) {
         var error = e.error;
         if (error is SocketException) {
-          throw Response(
+          throw ErrorResponse(
             statusCode: HttpStatus.serviceUnavailable,
             statusMessage: error.message,
           );
         } else {
-          throw Response(statusMessage: error.message);
+          throw ErrorResponse(statusMessage: error.message);
         }
       } else {
         throw e;
@@ -722,29 +824,59 @@ class DioApi implements Api {
         .replaceAll(new RegExp(r"\s+"), "");
     // trim all whitespace
 
-    final response = await DioHelper.dio.post(
-      '/method/frappe.social.doctype.energy_point_log.energy_point_log.review',
-      data: data,
-      options: Options(
-        contentType: Headers.formUrlEncodedContentType,
-      ),
-    );
+    try {
+      final response = await DioHelper.dio.post(
+        '/method/frappe.social.doctype.energy_point_log.energy_point_log.review',
+        data: data,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      return response.data;
-    } else {
-      throw Exception('Something went wrong');
+      if (response.statusCode == 200) {
+        if (response.data["_server_messages"] != null) {
+          var errorMsg = getServerMessage(response.data["_server_messages"]);
+
+          throw ErrorResponse(
+            statusMessage: errorMsg,
+          );
+        }
+        return response.data;
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
     }
   }
 
-  Future setPermission(
-    String doctype,
-    String name,
-    Map shareInfo,
-  ) async {
+  Future setPermission({
+    @required String doctype,
+    @required String name,
+    @required String user,
+    @required Map shareInfo,
+  }) async {
     var data = {
       'doctype': doctype,
       'name': name,
+      'user': user,
       ...shareInfo,
     };
 
@@ -798,6 +930,243 @@ class DioApi implements Api {
       return response.data;
     } else {
       throw Exception('Something went wrong');
+    }
+  }
+
+  Future shareGetUsers({
+    @required String doctype,
+    @required String name,
+  }) async {
+    var data = {
+      "doctype": doctype,
+      "name": name,
+    };
+
+    final response = await DioHelper.dio.post(
+      '/method/frappe.share.get_users',
+      data: data,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    if (response.statusCode == 200) {
+      return response.data;
+    } else {
+      throw Exception('Something went wrong');
+    }
+  }
+
+  Future<GroupByCountResponse> getGroupByCount({
+    @required String doctype,
+    @required List currentFilters,
+    @required String field,
+  }) async {
+    var reqData = {
+      "doctype": doctype,
+      "current_filters": currentFilters,
+      "field": field
+    };
+
+    try {
+      final response = await DioHelper.dio.post(
+        '/method/frappe.desk.listview.get_group_by_count',
+        data: reqData,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return GroupByCountResponse.fromJson(response.data);
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
+    }
+  }
+
+  Future<int> getReportViewCount({
+    @required String doctype,
+    @required Map filters,
+    @required List<DoctypeField> fields,
+  }) async {
+    var reqData = {
+      "doctype": doctype,
+      "filters": filters,
+      "fields": fields,
+      "distinct": false,
+    };
+
+    try {
+      final response = await DioHelper.dio.post(
+        '/method/frappe.desk.reportview.get_count',
+        data: reqData,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data["message"];
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
+    }
+  }
+
+  Future<SystemSettingsResponse> getSystemSettings() async {
+    try {
+      final response = await DioHelper.dio.post(
+        '/method/frappe.core.doctype.system_settings.system_settings.load',
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return SystemSettingsResponse.fromJson(response.data);
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
+    }
+  }
+
+  Future<GetVersionsResponse> getVersions() async {
+    try {
+      final response = await DioHelper.dio.post(
+        '/method/frappe.utils.change_log.get_versions',
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return GetVersionsResponse.fromJson(response.data);
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
+    }
+  }
+
+  Future<List> getList({
+    @required List fields,
+    @required int limit,
+    @required String orderBy,
+    @required String doctype,
+  }) async {
+    try {
+      final response = await DioHelper.dio.get(
+        '/method/frappe.desk.reportview.get_list',
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+        ),
+        queryParameters: {
+          "fields": jsonEncode(fields),
+          "limit": limit,
+          "order_by": orderBy,
+          "doctype": doctype,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return response.data["message"];
+      } else if (response.statusCode == HttpStatus.forbidden) {
+        throw ErrorResponse(
+          statusCode: response.statusCode,
+          statusMessage: response.statusMessage,
+        );
+      } else {
+        throw ErrorResponse();
+      }
+    } catch (e) {
+      if (e is DioError) {
+        var error = e.error;
+        if (error is SocketException) {
+          throw ErrorResponse(
+            statusCode: HttpStatus.serviceUnavailable,
+            statusMessage: error.message,
+          );
+        } else {
+          throw ErrorResponse(statusMessage: error.message);
+        }
+      } else {
+        throw ErrorResponse();
+      }
     }
   }
 }

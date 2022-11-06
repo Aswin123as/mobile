@@ -1,25 +1,30 @@
+## Deprecation Warning
+
+We are deprecating mobile apps as [discussed here](https://discuss.erpnext.com/t/deprecating-erpnext-mobile-apps/84121). 
+
+If you willing to take the development forward, you can fork the repo and continue the development.
+
 
 # Frappe Mobile
 
-**Please Note, this Project is still in beta stage and requires latest version(develop) of Frappe Framework v13**
+Access your ERPNext desk or any other Frappe desk anytime from your smartphone.
 
-<kbd><img width="216" height="432" src="screenshots/login.png" alt="Frappe Books Preview" /></kbd>
-<kbd><img width="216" height="432" src="screenshots/home.png" alt="Frappe Books Preview" /></kbd>
-<kbd><img width="216" height="432" src="screenshots/list_view.png" alt="Frappe Books Preview" /></kbd>
+<kbd><img width="216" height="432" src="screenshots/desk.png" alt="Desk" /></kbd>
+<kbd><img width="216" height="432" src="screenshots/awesomebar.png" alt="Awesome Bar" /></kbd>
+<kbd><img width="216" height="432" src="screenshots/form_view.png" alt="Form View" /></kbd>
 
 ## Features:
-1) Offline First (Data is automatically fetched in background every 30 mins)
-3) Create/Update Docs (queued when offline and processed automatically when reconnected to internet)
-4) Add/Remove Assignees, Tags
-5) Add/Remove/Download Attachments 
-6) Add Comments, Send Email
-7) Appreciate/Criticize Users involved in specified Doc.
-8) Timeline
-9) Awesombar
+1) Create/Update Docs
+2) Add/Remove Assignees, Tags
+3) Add/Remove/Download Attachments 
+4) Add Comments, Send Email
+5) Appreciate/Criticize Users involved in specified Doc.
+6) Timeline
+7) Awesombar
 
 
 ## Development
-0) To run this Project first you need to [Setup Flutter v1.22.x](https://flutter.dev/docs/get-started/install)
+0) To run this Project first you need to [Setup Flutter](https://flutter.dev/docs/get-started/install)
 
 1) Install packages<br/>
 ```sh

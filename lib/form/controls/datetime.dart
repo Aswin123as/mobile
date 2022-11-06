@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 
 import '../../config/palette.dart';
 import '../../model/doctype_response.dart';
@@ -9,23 +10,29 @@ import 'base_control.dart';
 import 'base_input.dart';
 
 class DatetimeField extends StatelessWidget with Control, ControlInput {
-  final Key key;
-  final Map doc;
   final DoctypeField doctypeField;
-  final bool withLabel;
-  final bool editMode;
+
+  final Key? key;
+  final Map? doc;
 
   const DatetimeField({
+    required this.doctypeField,
     this.key,
-    @required this.doctypeField,
     this.doc,
-    this.withLabel,
-    this.editMode,
   });
 
   @override
   Widget build(BuildContext context) {
-    List<String Function(dynamic)> validators = [];
+    DateTime? value;
+
+    if (doc != null) {
+      if (doc![doctypeField.fieldname] == "Now") {
+        value = DateTime.now();
+      } else {
+        value = parseDate(doc![doctypeField.fieldname]);
+      }
+    }
+    List<String? Function(dynamic)> validators = [];
 
     var f = setMandatory(doctypeField);
 
@@ -38,14 +45,12 @@ class DatetimeField extends StatelessWidget with Control, ControlInput {
     return FormBuilderDateTimePicker(
       key: key,
       valueTransformer: (val) {
-        return val != null ? val.toIso8601String() : null;
+        return val?.toIso8601String();
       },
-      resetIcon: editMode ? Icon(Icons.close) : null,
-      initialTime: null,
-      initialValue: doc != null ? parseDate(doc[doctypeField.fieldname]) : null,
+      resetIcon: Icon(Icons.close),
+      initialValue: value,
       name: doctypeField.fieldname,
       decoration: Palette.formFieldDecoration(
-        withLabel: withLabel,
         label: doctypeField.label,
       ),
       validator: FormBuilderValidators.compose(validators),

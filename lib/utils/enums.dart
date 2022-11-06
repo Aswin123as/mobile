@@ -1,8 +1,4 @@
-enum EventType {
-  comment,
-  email,
-  docVersion,
-}
+enum AttachmentsFilter { all, files, links }
 
 enum Order {
   asc,
@@ -30,4 +26,9 @@ enum ConnectivityStatus {
 enum ViewState {
   idle,
   busy,
+}
+
+enum ImageShape {
+  roundedRectangle,
+  circle,
 }

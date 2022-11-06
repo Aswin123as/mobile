@@ -1,12 +1,12 @@
 class DoctypeResponse {
-  List<DoctypeDoc> docs;
-  String userSettings;
+  late List<DoctypeDoc> docs;
+  late String userSettings;
 
-  DoctypeResponse({this.docs, this.userSettings});
+  DoctypeResponse({required this.docs, required this.userSettings});
 
   DoctypeResponse.fromJson(Map<dynamic, dynamic> json) {
     if (json['docs'] != null) {
-      docs = new List<DoctypeDoc>();
+      docs = [];
       json['docs'].forEach((v) {
         docs.add(new DoctypeDoc.fromJson(Map<dynamic, dynamic>.from(v)));
       });
@@ -16,69 +16,67 @@ class DoctypeResponse {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
-    if (this.docs != null) {
-      data['docs'] = this.docs.map((v) => v.toJson()).toList();
-    }
+    data['docs'] = this.docs.map((v) => v.toJson()).toList();
     data['user_settings'] = this.userSettings;
     return data;
   }
 }
 
 class DoctypeDoc {
-  String doctype;
-  String name;
-  String owner;
-  String creation;
-  String modified;
-  String modifiedBy;
-  int idx;
-  int docstatus;
-  String searchFields;
-  int issingle;
-  int istable;
-  int editableGrid;
-  int trackChanges;
-  String module;
-  String autoname;
-  String nameCase;
-  String titleField;
-  String subjectField;
-  String senderField;
-  String imageField;
-  String sortField;
-  String sortOrder;
-  String description;
-  int readOnly;
-  int inCreate;
-  int allowCopy;
-  int allowRename;
-  int allowImport;
-  int hideToolbar;
-  int trackSeen;
-  int maxAttachments;
-  String documentType;
-  String icon;
-  String engine;
-  int isSubmittable;
-  int showNameInGlobalSearch;
-  int custom;
-  int beta;
-  int hasWebView;
-  int allowGuestToView;
-  int trackViews;
-  int allowEventsInTimeline;
-  int allowAutoRepeat;
-  int quickEntry;
-  int showPreviewPopup;
-  int isTree;
-  int emailAppendTo;
-  int indexWebPagesForSearch;
-  List<DoctypeField> fields;
-  Map fieldsMap;
+  late String? doctype;
+  late String name;
+  late String? owner;
+  late String? creation;
+  late String? modified;
+  late String? modifiedBy;
+  late int? idx;
+  late int? docstatus;
+  late String? searchFields;
+  late int issingle;
+  late int? istable;
+  late int? editableGrid;
+  late int? trackChanges;
+  late String module;
+  late String? autoname;
+  late String? nameCase;
+  late String? titleField;
+  late String? subjectField;
+  late String? senderField;
+  late String? imageField;
+  late String? sortField;
+  late String? sortOrder;
+  late String? description;
+  late int? readOnly;
+  late int? inCreate;
+  late int? allowCopy;
+  late int? allowRename;
+  late int? allowImport;
+  late int? hideToolbar;
+  late int? trackSeen;
+  late int? maxAttachments;
+  late String? documentType;
+  late String? icon;
+  late String? engine;
+  late int? isSubmittable;
+  late int? showNameInGlobalSearch;
+  late int? custom;
+  late int? beta;
+  late int? hasWebView;
+  late int? allowGuestToView;
+  late int? trackViews;
+  late int? allowEventsInTimeline;
+  late int? allowAutoRepeat;
+  late int? quickEntry;
+  late int? showPreviewPopup;
+  late int? isTree;
+  late int? emailAppendTo;
+  late int? indexWebPagesForSearch;
+  late List<DoctypeField> fields;
+  late Map? fieldsMap;
 
   DoctypeDoc(
       {this.doctype,
-      this.name,
+      required this.name,
       this.owner,
       this.creation,
       this.modified,
@@ -86,11 +84,11 @@ class DoctypeDoc {
       this.idx,
       this.docstatus,
       this.searchFields,
-      this.issingle,
+      required this.issingle,
       this.istable,
       this.editableGrid,
       this.trackChanges,
-      this.module,
+      required this.module,
       this.autoname,
       this.nameCase,
       this.titleField,
@@ -125,7 +123,7 @@ class DoctypeDoc {
       this.isTree,
       this.emailAppendTo,
       this.indexWebPagesForSearch,
-      this.fields,
+      required this.fields,
       this.fieldsMap});
 
   DoctypeDoc.fromJson(Map<dynamic, dynamic> json) {
@@ -179,7 +177,7 @@ class DoctypeDoc {
     indexWebPagesForSearch = json['index_web_pages_for_search'];
     fieldsMap = json['field_map'];
     if (json['fields'] != null) {
-      fields = new List<DoctypeField>();
+      fields = [];
       json['fields'].forEach((v) {
         fields.add(new DoctypeField.fromJson(Map<dynamic, dynamic>.from(v)));
       });
@@ -237,116 +235,123 @@ class DoctypeDoc {
     data['email_append_to'] = this.emailAppendTo;
     data['index_web_pages_for_search'] = this.indexWebPagesForSearch;
     data['fields_map'] = this.fieldsMap;
-    if (this.fields != null) {
-      data['fields'] = this.fields.map((v) => v.toJson()).toList();
-    }
+    data['fields'] = this.fields.map((v) => v.toJson()).toList();
     return data;
   }
 }
 
 class DoctypeField {
-  String doctype;
-  String name;
-  String owner;
-  String creation;
-  String modified;
-  String modifiedBy;
-  String parent;
-  String parentfield;
-  String parenttype;
-  int idx;
-  int docstatus;
-  String fieldname;
-  String label;
-  String fieldtype;
-  String oldfieldtype;
-  dynamic options;
-  int searchIndex;
-  int hidden;
-  int setOnlyOnce;
-  int allowInQuickEntry;
-  int printHide;
-  int reportHide;
-  int reqd;
-  int bold;
-  int inGlobalSearch;
-  int collapsible;
-  int unique;
-  int noCopy;
-  int allowOnSubmit;
-  int showPreviewPopup;
-  int permlevel;
-  int ignoreUserPermissions;
-  int columns;
-  int inListView;
-  int inStandardFilter;
-  int isDefaultFilter;
-  int inPreview;
-  int readOnly;
-  int length;
-  int translatable;
-  int rememberLastSelectedValue;
-  int allowBulkEdit;
-  int printHideIfNoValue;
-  int inFilter;
-  int fetchIfEmpty;
-  int ignoreXssFilter;
-  int hideBorder;
-  int hideDays;
-  int hideSeconds;
-  dynamic defaultValue;
+  late String? doctype;
+  late String? name;
+  late String? owner;
+  late String? creation;
+  late String? modified;
+  late String? modifiedBy;
+  late String? parent;
+  late String? parentfield;
+  late String? parenttype;
+  late int? idx;
+  late int? docstatus;
+  late String fieldname;
+  late String? dependsOn;
+  late String? mandatoryDependsOn;
+  late String? fetchFrom;
+  late String? label;
+  late String? fieldtype;
+  late String? oldfieldtype;
+  late dynamic options;
+  late int? searchIndex;
+  late int? hidden;
+  late int? setOnlyOnce;
+  late int? allowInQuickEntry;
+  late int? printHide;
+  late int? reportHide;
+  late int? reqd;
+  late int? bold;
+  late int? inGlobalSearch;
+  late int? collapsible;
+  late int? unique;
+  late int? noCopy;
+  late int? allowOnSubmit;
+  late int? showPreviewPopup;
+  late int? permlevel;
+  late int? ignoreUserPermissions;
+  late int? columns;
+  late int? inListView;
+  late int? inStandardFilter;
+  late int? isDefaultFilter;
+  late int? inPreview;
+  late int? readOnly;
+  late int? length;
+  late dynamic translatable;
+  late int? rememberLastSelectedValue;
+  late int? allowBulkEdit;
+  late int? printHideIfNoValue;
+  late int? inFilter;
+  late int? fetchIfEmpty;
+  late int? ignoreXssFilter;
+  late int? hideBorder;
+  late int? hideDays;
+  late int? hideSeconds;
+  late dynamic defaultValue;
+  late int pVisible = 1;
 
-  DoctypeField(
-      {this.doctype,
-      this.name,
-      this.owner,
-      this.creation,
-      this.modified,
-      this.modifiedBy,
-      this.parent,
-      this.parentfield,
-      this.parenttype,
-      this.idx,
-      this.docstatus,
-      this.fieldname,
-      this.label,
-      this.fieldtype,
-      this.oldfieldtype,
-      this.options,
-      this.searchIndex,
-      this.hidden,
-      this.setOnlyOnce,
-      this.allowInQuickEntry,
-      this.printHide,
-      this.reportHide,
-      this.reqd,
-      this.bold,
-      this.inGlobalSearch,
-      this.collapsible,
-      this.unique,
-      this.noCopy,
-      this.allowOnSubmit,
-      this.showPreviewPopup,
-      this.permlevel,
-      this.ignoreUserPermissions,
-      this.columns,
-      this.inListView,
-      this.inStandardFilter,
-      this.isDefaultFilter = 0,
-      this.inPreview,
-      this.readOnly,
-      this.length,
-      this.translatable,
-      this.rememberLastSelectedValue,
-      this.allowBulkEdit,
-      this.printHideIfNoValue,
-      this.inFilter,
-      this.fetchIfEmpty,
-      this.ignoreXssFilter,
-      this.hideBorder,
-      this.hideDays,
-      this.hideSeconds,
-      this.defaultValue});
+  DoctypeField({
+    this.doctype,
+    this.name,
+    this.owner,
+    this.creation,
+    this.modified,
+    this.modifiedBy,
+    this.parent,
+    this.parentfield,
+    this.parenttype,
+    this.idx,
+    this.docstatus,
+    required this.fieldname,
+    required this.label,
+    this.dependsOn,
+    this.mandatoryDependsOn,
+    this.fetchFrom,
+    this.fieldtype,
+    this.oldfieldtype,
+    this.options,
+    this.searchIndex,
+    this.hidden,
+    this.setOnlyOnce,
+    this.allowInQuickEntry,
+    this.printHide,
+    this.reportHide,
+    this.reqd,
+    this.bold,
+    this.inGlobalSearch,
+    this.collapsible,
+    this.unique,
+    this.noCopy,
+    this.allowOnSubmit,
+    this.showPreviewPopup,
+    this.permlevel,
+    this.ignoreUserPermissions,
+    this.columns,
+    this.inListView,
+    this.inStandardFilter,
+    this.isDefaultFilter = 0,
+    this.inPreview,
+    this.readOnly,
+    this.length,
+    this.translatable,
+    this.rememberLastSelectedValue,
+    this.allowBulkEdit,
+    this.printHideIfNoValue,
+    this.inFilter,
+    this.fetchIfEmpty,
+    this.ignoreXssFilter,
+    this.hideBorder,
+    this.hideDays,
+    this.hideSeconds,
+    this.defaultValue,
+    this.pVisible = 1,
+  });
 
   DoctypeField.fromJson(Map<dynamic, dynamic> json) {
     doctype = json['doctype'];
@@ -361,6 +366,9 @@ class DoctypeField {
     idx = json['idx'];
     docstatus = json['docstatus'];
     fieldname = json['fieldname'];
+    dependsOn = json['depends_on'];
+    mandatoryDependsOn = json['mandatory_depends_on'];
+    fetchFrom = json['fetch_from'];
     label = json['label'];
     fieldtype = json['fieldtype'];
     oldfieldtype = json['oldfieldtype'];
@@ -415,6 +423,9 @@ class DoctypeField {
     data['idx'] = this.idx;
     data['docstatus'] = this.docstatus;
     data['fieldname'] = this.fieldname;
+    data['depends_on'] = this.dependsOn;
+    data['mandatory_depends_on'] = this.mandatoryDependsOn;
+    data['fetch_from'] = this.fetchFrom;
     data['label'] = this.label;
     data['fieldtype'] = this.fieldtype;
     data['oldfieldtype'] = this.oldfieldtype;

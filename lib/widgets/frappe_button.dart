@@ -5,18 +5,18 @@ import '../utils/enums.dart';
 import '../utils/frappe_icon.dart';
 
 class FrappeFlatButton extends StatelessWidget {
-  final Function onPressed;
+  final void Function()? onPressed;
   final String title;
   final ButtonType buttonType;
-  final String icon;
+  final String? icon;
   final double height;
   final double minWidth;
   final bool fullWidth;
 
   FrappeFlatButton({
-    @required this.onPressed,
-    @required this.buttonType,
-    this.title,
+    required this.onPressed,
+    required this.buttonType,
+    required this.title,
     this.icon,
     this.height = 36.0,
     this.minWidth = 88,
@@ -24,9 +24,9 @@ class FrappeFlatButton extends StatelessWidget {
   });
 
   FrappeFlatButton.small({
-    @required this.onPressed,
-    @required this.buttonType,
-    this.title,
+    required this.onPressed,
+    required this.buttonType,
+    required this.title,
     this.icon,
     this.height = 32.0,
     this.minWidth = 88,
@@ -35,8 +35,8 @@ class FrappeFlatButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color _buttonColor;
-    TextStyle _textStyle;
+    late Color _buttonColor;
+    late TextStyle _textStyle;
 
     if (onPressed == null) {
       _buttonColor = Palette.disabledButonColor;
@@ -46,7 +46,7 @@ class FrappeFlatButton extends StatelessWidget {
       _buttonColor = Palette.primaryButtonColor;
       _textStyle =
           TextStyle(color: Colors.white, fontSize: fullWidth ? 18 : null);
-    } else if (buttonType == ButtonType.secondary) {
+    } else {
       _buttonColor = Palette.secondaryButtonColor;
       _textStyle =
           TextStyle(color: Colors.black, fontSize: fullWidth ? 18 : null);
@@ -57,13 +57,11 @@ class FrappeFlatButton extends StatelessWidget {
         height: height,
         minWidth: fullWidth ? double.infinity : minWidth,
         child: FlatButton.icon(
-          label: title != null
-              ? Text(
-                  title,
-                  style: _textStyle,
-                )
-              : Container(),
-          icon: FrappeIcon(icon),
+          label: Text(
+            title,
+            style: _textStyle,
+          ),
+          icon: FrappeIcon(icon!),
           onPressed: onPressed,
           shape: OutlineInputBorder(
             borderSide: BorderSide(
@@ -82,42 +80,41 @@ class FrappeFlatButton extends StatelessWidget {
         height: height,
         minWidth: fullWidth ? double.infinity : minWidth,
         child: FlatButton(
-          onPressed: onPressed,
-          shape: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Colors.transparent,
+            onPressed: onPressed,
+            shape: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Colors.transparent,
+              ),
+              borderRadius: BorderRadius.all(
+                Radius.circular(6),
+              ),
             ),
-            borderRadius: BorderRadius.all(
-              Radius.circular(6),
-            ),
-          ),
-          color: _buttonColor,
-          disabledColor: _buttonColor,
-          child: title != null
-              ? Text(
-                  title,
-                  style: _textStyle,
-                )
-              : Container(),
-        ),
+            color: _buttonColor,
+            disabledColor: _buttonColor,
+            child: Text(
+              title,
+              style: _textStyle,
+            )),
       );
     }
   }
 }
 
 class FrappeRaisedButton extends StatelessWidget {
-  final Function onPressed;
-  final String title;
-  final String icon;
+  final void Function()? onPressed;
+  final String? title;
+  final Widget? titleWidget;
+  final String? icon;
   final double height;
   final double minWidth;
   final Color color;
-  final double iconSize;
+  final double? iconSize;
   final bool fullWidth;
 
   FrappeRaisedButton({
-    @required this.onPressed,
-    @required this.title,
+    required this.onPressed,
+    this.titleWidget,
+    this.title,
     this.icon,
     this.iconSize,
     this.height = 36.0,
@@ -127,8 +124,9 @@ class FrappeRaisedButton extends StatelessWidget {
   });
 
   FrappeRaisedButton.small({
-    @required this.onPressed,
-    @required this.title,
+    required this.onPressed,
+    this.title,
+    this.titleWidget,
     this.icon,
     this.iconSize,
     this.height = 32.0,
@@ -139,20 +137,27 @@ class FrappeRaisedButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget tWidget;
+    if (title != null) {
+      tWidget = Text(title!);
+    } else if (titleWidget != null) {
+      tWidget = titleWidget!;
+    } else {
+      tWidget = Text('');
+    }
+
     if (icon != null) {
       return ButtonTheme(
         height: height,
         minWidth: fullWidth ? double.infinity : minWidth,
         child: RaisedButton.icon(
           color: color,
-          label: Text(
-            title,
-          ),
+          label: tWidget,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6.0),
           ),
           icon: FrappeIcon(
-            icon,
+            icon!,
             size: iconSize,
           ),
           onPressed: onPressed,
@@ -168,9 +173,7 @@ class FrappeRaisedButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6.0),
           ),
-          child: Text(
-            title,
-          ),
+          child: tWidget,
         ),
       );
     }
@@ -178,7 +181,7 @@ class FrappeRaisedButton extends StatelessWidget {
 }
 
 class FrappeIconButton extends StatelessWidget {
-  final Function onPressed;
+  final void Function()? onPressed;
   final ButtonType buttonType;
   final String icon;
   final double height;
@@ -186,19 +189,10 @@ class FrappeIconButton extends StatelessWidget {
   final bool fullWidth;
 
   FrappeIconButton({
-    @required this.onPressed,
-    @required this.buttonType,
-    @required this.icon,
+    required this.onPressed,
+    required this.buttonType,
+    required this.icon,
     this.height = 36.0,
-    this.minWidth = 88,
-    this.fullWidth = false,
-  });
-
-  FrappeIconButton.small({
-    @required this.onPressed,
-    @required this.buttonType,
-    this.icon,
-    this.height = 32.0,
     this.minWidth = 88,
     this.fullWidth = false,
   });
@@ -211,7 +205,7 @@ class FrappeIconButton extends StatelessWidget {
       _buttonColor = Palette.disabledButonColor;
     } else if (buttonType == ButtonType.primary) {
       _buttonColor = Palette.primaryButtonColor;
-    } else if (buttonType == ButtonType.secondary) {
+    } else {
       _buttonColor = Palette.secondaryButtonColor;
     }
 

@@ -1,3 +1,10 @@
+// @dart=2.9
+
+import 'dart:isolate';
+import 'dart:ui';
+
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -19,9 +26,21 @@ void main() async {
   await resetValues();
   await initDb();
   await FlutterDownloader.initialize();
+  FlutterDownloader.registerCallback(downloadCallback);
   await initApiConfig();
   await initLocalNotifications();
-  await initAutoSync();
+  // await initAutoSync();
 
-  runApp(FrappeApp());
+  runApp(
+    DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => FrappeApp(),
+    ),
+  );
+}
+
+void downloadCallback(String id, DownloadTaskStatus status, int progress) {
+  final SendPort send =
+      IsolateNameServer.lookupPortByName('downloader_send_port');
+  send.send([id, status, progress]);
 }
